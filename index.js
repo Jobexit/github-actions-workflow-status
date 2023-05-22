@@ -8,14 +8,10 @@ const STATUS_SUCCESS = 'success';
 const STATUS_ERROR = 'error';
 
 try {
-    // const ref = core.getInput('ref', {required: false}) || context.sha;
-    // const token = core.getInput('repo-token');
-    // const workflow = core.getInput('workflow');
-    // const job = core.getInput('workflow', {required: false}) || null;
-    const ref = "88b51c48aadccc27b9ee57ce329503d5af26e733";
-    const token = "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";
-    const workflow = "main.yml"
-    const job = "test"
+    const ref = core.getInput('ref', {required: false}) || context.sha;
+    const token = core.getInput('repo-token');
+    const workflow = core.getInput('workflow');
+    const job = core.getInput('workflow', {required: false}) || null;
 
     const octokit = new Octokit({auth: token});
     const {owner, repo} = context.repo;
