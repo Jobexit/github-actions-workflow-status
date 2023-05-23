@@ -2,19 +2,15 @@ name: 'workflow-status'
 description: 'Github action to get the status of a workflow or a job on a given reference'
 inputs:
   repo-token:
-    description: 'Token for github-api calls'
+    description: 'Token for github-api calls.'
     required: true
-
-  ref:
-    description: 'A git ref to be checked: branch/tag/commit sha. Defaults - current commit of started workflow'
-    required: false
 
   workflow:
-    description: 'The workflow name to get'
+    description: 'The workflow file name to get (ex: tests.yml).'
     required: true
 
-  job:
-    description: "The workflow's job to check (if not provided, the whole workflow state will be returned)"
+  head-sha:
+    description: 'The full commit hash of the commit to be checked. Defaults to current commit of started workflow'
     required: false
 
 runs:

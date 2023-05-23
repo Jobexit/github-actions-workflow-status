@@ -1,82 +1,36 @@
 const core = require('@actions/core');
 const {context} = require('@actions/github');
-const {OctokitlistForRef} = require("@octokit/rest");
+const {Octokit} = require("@octokit/rest");
 
-const STATUS_IN_PROGRESS = 'in_progress';
-const STATUS_NO_WORK = 'no_work';
-const STATUS_SUCCESS = 'success';
-const STATUS_ERROR = 'error';
+(async () => {
+    try {
+        const token = core.getInput('repo-token');
+        const workflow_id = core.getInput('workflow');
+        const head_sha = core.getInput('head-sha', {required: false}) || context.sha;
 
-try {
-    const ref = core.getInput('ref', {required: false}) || context.sha;
-    const token = core.getInput('repo-token');
-    const workflow = core.getInput('workflow');
-    const job = core.getInput('workflow', {required: false}) || null;
+        const octokit = new Octokit({auth: token});
+        const {owner, repo} = context.repo;
 
-    const octokit = new Octokit({auth: token});
-    const {owner, repo} = context.repo;
+        const {data: {workflow_runs: runs}} = await octokit.actions.listWorkflowRuns({
+            owner,
+            repo,
+            workflow_id,
+            head_sha,
+        });
 
-    const queryCheckWorkflows = async function () {
-        const {data: response} = await octokit.checks.listForRef({owner, repo, ref});
-        if (response.total_count === 1) {
-            return [STATUS_NO_WORK, null];
-        }
-        let status = STATUS_SUCCESS;
-        let jobName = null;
-        try {
-            response.check_runs.forEach(checkRun => {
-                if (checkRun.name !== context.job) {
-                    if (checkRun.status === 'in_progress' || checkRun.status === 'queued') {
-                        jobName = checkRun.name;
-                        status = STATUS_IN_PROGRESS;
-                        throw BreakException;
-                    }
-                    if (['failure', 'cancelled', 'timed_out'].includes(checkRun.conclusion)) {
-                        jobName = checkRun.name;
-                        status = STATUS_ERROR;
-                        throw BreakException;
-                    }
-                }
-            })
-        } catch (e) {
-            if (e !== BreakException) throw e;
-        }
-
-        return [status, jobName];
-    };
-
-    (async () => {
-        try {
-            [result, jobName] = await queryCheckWorkflows();
-
-            console.log(result, jobName);
-
+        if (runs.length < 1) {
+            core.setFailed("There are no workflows runs.");
             return;
-
-            // if (result === STATUS_NO_WORK) {
-            //     if (breakIfNoWork === true) {
-            //         core.setFailed(`There aren't checks for this ref, exiting...`);
-            //     } else {
-            //         console.log(`There aren't checks for this ref, pass...`)
-            //     }
-            //     break;
-            // } else if (result === STATUS_ERROR) {
-            //     core.setFailed(`Workflow ${jobName} ended with error, exiting...`);
-            //     break;
-            // } else if (result === STATUS_SUCCESS) {
-            //     break;
-            // }
-            // if (executedTime > waitMax) {
-            //     core.setFailed('Time exceed max limit (' + waitMax + '), stopping...');
-            //     break;
-            // }
-            // console.log(`Workflow ${jobName} still in progress (${executedTime}s.), will check for ${waitInterval} seconds...`);
-            // await sleep(waitInterval);
-            // executedTime += waitInterval;
-        } catch (error) {
-            core.setFailed(error.message);
         }
-    })();
-} catch (error) {
-    core.setFailed(error.message);
-}
+        const run = runs[0];
+
+        if (run.status !== 'completed') { // completed, in_progress, queued
+            core.setFailed(`Workflow has not completed yet (${run.status}).`)
+        } else if (run.conclusion !== 'success') { // cancelled, success, failure
+            core.setFailed(`Workflow has not completed successfully (${run.conclusion}).`)
+        }
+    } catch (error) {
+        console.error(error);
+        core.setFailed('An error occurred.');
+    }
+})()
