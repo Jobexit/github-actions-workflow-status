@@ -29,6 +29,7 @@ const {Octokit} = require("@octokit/rest");
         } else if (run.conclusion !== 'success') { // cancelled, success, failure
             core.setFailed(`Workflow '${workflow_id}' has not completed successfully (${run.conclusion}).`)
         }
+        console.log(`Workflow '${workflow_id}' has not completed successfully.`)
     } catch (error) {
         console.error(error);
         core.setFailed('An error occurred.');
