@@ -19,15 +19,15 @@ const {Octokit} = require("@octokit/rest");
         });
 
         if (runs.length < 1) {
-            core.setFailed("There are no workflows runs.");
+            core.setFailed(`There are no runs for workflow '${workflow_id}'.`);
             return;
         }
         const run = runs[0];
 
         if (run.status !== 'completed') { // completed, in_progress, queued
-            core.setFailed(`Workflow has not completed yet (${run.status}).`)
+            core.setFailed(`Workflow '${workflow_id}' has not completed yet (${run.status}).`)
         } else if (run.conclusion !== 'success') { // cancelled, success, failure
-            core.setFailed(`Workflow has not completed successfully (${run.conclusion}).`)
+            core.setFailed(`Workflow '${workflow_id}' has not completed successfully (${run.conclusion}).`)
         }
     } catch (error) {
         console.error(error);
